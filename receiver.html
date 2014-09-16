@@ -45,7 +45,7 @@
 						// Image
 						img = new Image();
 						img.onload = function () {
-							document.body.style.background = '#000 url(' + contentId + ') no-repeat center';
+							document.body.style.background = '#000 url(' + this.src + ') no-repeat center';
 							mediaElement.style.display = 'none';
 							mediaManager.sendLoadComplete();
 						}
