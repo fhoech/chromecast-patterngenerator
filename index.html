@@ -158,14 +158,23 @@ function stopApp() {
  */
 function sendMessage(message) {
   if (session!=null) {
-    session.sendMessage(namespace, message, onSuccess.bind(this, "Message sent: " + message), onError);
+    _sendMessage(message);
   }
   else {
     chrome.cast.requestSession(function(e) {
         session = e;
-        session.sendMessage(namespace, message, onSuccess.bind(this, "Message sent: " + message), onError);
+        _sendMessage(message);
       }, onError);
   }
+}
+
+function _sendMessage(message) {
+    if (message.indexOf('http') === 0 || message.indexOf('data:image/png') === 0) {
+        session.loadMedia({ "requestId": 1, "type": "LOAD", "media": 
+                           { "contentId": message, "streamType": "LIVE",
+                             "contentType": "image/png" } }, onSuccess.bind(this, "Message sent: " + message), onError)
+    }
+    else session.sendMessage(namespace, message, onSuccess.bind(this, "Message sent: " + message), onError);
 }
 
 /**
@@ -200,7 +209,7 @@ function transcribe(words) {
 		<td>
 			<form method="get" onsubmit="update(); return false">
                 <h1>Chromecast Pattern Generator Test</h1>
-                <p>Enter pattern information in the format<br>
+                <p>Enter PNG image URL or pattern information in the format<br>
                 <code>&lt;patchcolor&gt;;&lt;backgroundcolor&gt;;&lt;x&gt;;&lt;y&gt;;&lt;width&gt;;&lt;height&gt;</code><br>
                 (values other than patchcolor are optional)</p>
 				<p><input id="input" class="border" type="text" size="30" value="#C30;#666;;;500;500"></p>
