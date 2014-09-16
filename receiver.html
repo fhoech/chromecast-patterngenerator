@@ -46,7 +46,7 @@
 						img.onload = function () {
 							document.body.style.background = '#000 url(' + contentId + ') no-repeat center';
 							mediaElement.style.display = 'none';
-							this.sendLoadComplete();
+							mediaManager.sendLoadComplete();
 						}
 						img.src = contentId + '?' + new Date().getTime();
 					}
