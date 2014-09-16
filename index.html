@@ -16,24 +16,27 @@ limitations under the License.
 <!DOCTYPE html>
 <html>
 <head>
-<title>Hello World</title>
+<title>Chromecast Pattern Generator Test</title>
 <style type="text/css">
-html, body {
-    background: #369;
-   height:100%;
-   width: 100%;
-   margin: 0;
-   padding: 0;
-   border: 0;
+html, body, #wrapper {
+    font-family: sans-serif;
+    font-size: x-large;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
 }
 #wrapper td {
-   vertical-align: middle;
-   text-align: center;
+    vertical-align: middle;
+    text-align: center;
+}
+code, input {
+    font-family: Consolas, Andale Mono, Monaco, Lucida Console, monospace;
 }
 input {
-  font-family: "Arial", Arial, sans-serif;
-  font-size: 40px;
-  font-weight: bold;	
+    font-size: xx-large;
+    text-align: center;
 }
 .border {
     border: 2px solid #cccccc;
@@ -196,14 +199,18 @@ function transcribe(words) {
 	<tr>
 		<td>
 			<form method="get" onsubmit="update(); return false">
-				<input id="input" class="border" type="text" size="30" onwebkitspeechchange="transcribe(this.value)" x-webkit-speech/>
+                <h1>Chromecast Pattern Generator Test</h1>
+                <p>Enter pattern information in the format<br>
+                <code>&lt;patchcolor&gt;;&lt;backgroundcolor&gt;;&lt;x&gt;;&lt;y&gt;;&lt;width&gt;;&lt;height&gt;</code><br>
+                (values other than patchcolor are optional)</p>
+				<p><input id="input" class="border" type="text" size="30" value="#C30;#666;;;500;500"></p>
 			</form>
 		</td>
 	</tr>
   </table>	
 
   <!-- Debbugging output -->
-  <div style="margin:10px;">
+  <div style="margin:10px;display:none">
     <textarea rows="20" cols="70" id="debugmessage">
     </textarea>
   </div>

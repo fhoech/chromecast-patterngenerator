@@ -17,30 +17,31 @@ limitations under the License.
 <html>
   <head>
     <style type="text/css">
-	  body {
-	    overflow:hidden;
-	  }
-      div{
-	    height:720PX;
-	    width:1280PX;
-	    text-align:center;
-	    border:0px solid silver;
-	    display: table-cell;
-	    vertical-align:middle;
-	    color:#FFFFFF;
-	    background-color:#963;
-	    font-weight:bold;
-	    font-family:Verdana, Geneva, sans-serif;
-	    font-size:40px;
-	}
+        html, body {
+            background: #000;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
+		#patch {
+			background: #808080;
+			height: 300px;
+			left: 50%;
+			margin-left: -150px;
+			margin-top: -150px;
+			position: absolute;
+			top: 50%;
+			width: 300px;
+		}
     </style>
-    <title>Cast Hello Text</title>
+    <title>Chromecast Pattern Generator</title>
   </head>
   <body>
-	<DIV id="message">Talk to me</DIV>
-    <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
-    <script type="text/javascript">
-      window.onload = function() {
+    <div id="patch"></div>
+    <script src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
+    <script >
+      window.onload = function () {
         cast.receiver.logger.setLevelValue(0);
         window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
         console.log('Starting Receiver Manager');
@@ -61,8 +62,8 @@ limitations under the License.
         castReceiverManager.onSenderDisconnected = function(event) {
           console.log('Received Sender Disconnected event: ' + event.data);
           if (window.castReceiverManager.getSenders().length == 0) {
-	        window.close();
-	      }
+            window.close();
+          }
         };
         
         // handler for 'systemvolumechanged' event
@@ -80,7 +81,7 @@ limitations under the License.
         window.messageBus.onMessage = function(event) {
           console.log('Message [' + event.senderId + ']: ' + event.data);
           // display the message from the sender
-          displayText(event.data);
+          update(event.data);
           // inform all senders on the CastMessageBus of the incoming message event
           // sender message listener will be invoked
           window.messageBus.send(event.senderId, event.data);
@@ -91,11 +92,21 @@ limitations under the License.
         console.log('Receiver Manager started');
       };
       
-      // utility function to display the text message in the input field
-      function displayText(text) {
-        console.log(text);
-        document.getElementById("message").innerHTML=text;
-        window.castReceiverManager.setApplicationState(text);
+      // utility function to set colors and size
+      function update(data) {
+        // Data must be a string in the following form:
+        // "<patchcolor>;<backgroundcolor>;<x>;<y>;<width>;<height>"
+        var items = data.split(";"), patch = document.getElementById("patch");
+        console.log(data);
+        document.body.style.backgroundColor = items[1];
+        patch.style.backgroundColor = items[0];
+        patch.style.left = items[2] + 'px';
+        patch.style.top = items[3] + 'px';
+        patch.style.width = items[4] + 'px';
+        patch.style.height = items[5] + 'px';
+        patch.style.marginLeft = parseFloat(items[4]) / 2 + 'px';
+        patch.style.marginTop = parseFloat(items[5]) / 2 + 'px';
+        window.castReceiverManager.setApplicationState(data);
       };
     </script>
   </body>
