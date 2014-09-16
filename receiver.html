@@ -58,6 +58,16 @@ limitations under the License.
 		  }
 		};
 		window.mediaManager.onMetadataLoaded = null;
+		window.mediaManager.onLoadMetadataError = null;
+		window.mediaManager.onEnded = null;
+		window.mediaManager.onError = function (object) {
+          window.castReceiverManager.setApplicationState("" + object);
+		};
+		window.mediaManager.onPause = null;
+		window.mediaManager.onPlay = null;
+		window.mediaManager.onSeek = null;
+		window.mediaManager.onSetVolume = null;
+		window.mediaManager.onStop = null;
 
         window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
         console.log('Starting Receiver Manager');
