@@ -104,8 +104,8 @@ limitations under the License.
         patch.style.top = items[3] + 'px';
         patch.style.width = items[4] + 'px';
         patch.style.height = items[5] + 'px';
-        patch.style.marginLeft = parseFloat(items[4]) / 2 + 'px';
-        patch.style.marginTop = parseFloat(items[5]) / 2 + 'px';
+        patch.style.marginLeft = -parseFloat(items[4]) / 2 + 'px';
+        patch.style.marginTop = -parseFloat(items[5]) / 2 + 'px';
         window.castReceiverManager.setApplicationState(data);
       };
     </script>
