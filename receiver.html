@@ -47,8 +47,15 @@ limitations under the License.
         window.mediaElement = document.getElementById('patch');
         window.mediaManager = new cast.receiver.MediaManager(window.mediaElement);
 		window.mediaManager.onLoad = function (event) {
-          update(event.data['media']['contentId']);
-		  this.sendLoadComplete();
+          window.castReceiverManager.setApplicationState("Loading...");
+		  if (event.data['media'] && event.data['media']['contentId']) {
+			update(event.data['media']['contentId']);
+			this.sendLoadComplete();
+		  }
+		  else {
+			window.castReceiverManager.setApplicationState("Load failed!");
+			this.sendLoadError();
+		  }
 		};
 		window.mediaManager.onMetadataLoaded = null;
 
