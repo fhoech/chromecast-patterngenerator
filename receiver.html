@@ -27,6 +27,7 @@
 		window.onload = function () {
 			var mediaElement = document.getElementById('media'),
 				mediaManager = new cast.receiver.MediaManager(mediaElement),
+				appConfig = new cast.receiver.CastReceiverManager.Config(),
 				castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
 
 			mediaManager.onLoad = function (event) {
@@ -75,7 +76,25 @@
 				else this.sendLoadError();
 			};
 
-			castReceiverManager.start();
+			/**
+			 * Text that represents the application status. It should meet
+			 * internationalization rules as may be displayed by the sender application.
+			 * @type {string|undefined}
+			 **/
+			appConfig.statusText = 'Ready';
+
+			/**
+			* Maximum time in seconds before closing an idle
+			* sender connection. Setting this value enables a heartbeat message to keep
+			* the connection alive. Used to detect unresponsive senders faster than
+			* typical TCP timeouts. The minimum value is 5 seconds, there is no upper
+			* bound enforced but practically it's minutes before platform TCP timeouts
+			* come into play. Default value is 10 seconds.
+			* @type {number|undefined}
+			**/
+			appConfig.maxInactivity = 10;
+
+			castReceiverManager.start(appConfig);
 		};
 	</script>
 </head>
