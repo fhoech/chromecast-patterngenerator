@@ -170,9 +170,11 @@ function sendMessage(message) {
 
 function _sendMessage(message) {
     if (message.indexOf('http') === 0 || message.indexOf('data:image/png') === 0) {
-        session.loadMedia({ "requestId": 1, "type": "LOAD", "media": 
-                           { "contentId": message, "streamType": "LIVE",
-                             "contentType": "image/png" } }, onSuccess.bind(this, "Message sent: " + message), onError)
+        var mediaInfo, loadRequest;
+        mediaInfo = new chrome.cast.media.MediaInfo(message, 'image/png');
+        mediaInfo.streamType = chrome.cast.media.StreamType.LIVE;
+        loadRequest = new chrome.cast.media.LoadRequest(mediaInfo);
+        session.loadMedia(loadRequest, onSuccess.bind(this, "Message sent: " + message), onError)
     }
     else session.sendMessage(namespace, message, onSuccess.bind(this, "Message sent: " + message), onError);
 }
