@@ -47,9 +47,10 @@ limitations under the License.
         window.mediaElement = document.getElementById('patch');
         window.mediaManager = new cast.receiver.MediaManager(window.mediaElement);
 		window.mediaManager.onLoad = function (event) {
-          update(event.contentId);
+          update(event.data['media']['contentId']);
 		  this.sendLoadComplete();
 		};
+		window.mediaManager.onMetadataLoaded = null;
 
         window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
         console.log('Starting Receiver Manager');
