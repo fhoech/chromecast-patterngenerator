@@ -39,7 +39,7 @@ limitations under the License.
     <title>Chromecast Pattern Generator</title>
   </head>
   <body>
-    <div id="patch"></div>
+    <video id="patch"></video>
     <script src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
     <script >
       window.onload = function () {
@@ -47,27 +47,22 @@ limitations under the License.
         window.mediaElement = document.getElementById('patch');
         window.mediaManager = new cast.receiver.MediaManager(window.mediaElement);
 		window.mediaManager.onLoad = function (event) {
+		  var img;
           window.castReceiverManager.setApplicationState("Loading...");
 		  if (event.data['media'] && event.data['media']['contentId']) {
-			update(event.data['media']['contentId']);
-			window.mediaManager.sendLoadComplete();
+			img = new Image();
+			img.onload = function () {
+				update(this.src);
+				window.mediaManager.sendLoadComplete();
+			}
+			img.src = event.data['media']['contentId'] + '?' + new Date().getTime();;
 		  }
 		  else {
 			window.castReceiverManager.setApplicationState("Load failed!");
 			window.mediaManager.sendLoadError();
 		  }
 		};
-		window.mediaManager.onMetadataLoaded = null;
-		window.mediaManager.onLoadMetadataError = null;
-		window.mediaManager.onEnded = null;
-		window.mediaManager.onError = function (object) {
-          window.castReceiverManager.setApplicationState("" + object);
-		};
-		window.mediaManager.onPause = null;
-		window.mediaManager.onPlay = null;
-		window.mediaManager.onSeek = null;
-		window.mediaManager.onSetVolume = null;
-		window.mediaManager.onStop = null;
+		window.mediaManager.resetMediaElement = function () {};
 
         window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
         console.log('Starting Receiver Manager');
