@@ -95,19 +95,28 @@ limitations under the License.
       
       // utility function to set colors and size
       function update(data) {
-        // Data must be a string in the following form:
+        // Data must be an image URL or a string in the following form:
         // "<patchcolor>;<backgroundcolor>;<x>;<y>;<width>;<height>"
-        var items = data.split(";"), patch = document.getElementById("patch");
+        var items = (data + "").split(";"), patch = document.getElementById("patch");
         console.log(data);
-        document.body.style.backgroundColor = items[1];
-        patch.style.backgroundColor = items[0];
-        patch.style.left = items[2] + 'px';
-        patch.style.top = items[3] + 'px';
-        patch.style.width = items[4] + 'px';
-        patch.style.height = items[5] + 'px';
-        patch.style.marginLeft = -parseFloat(items[4]) / 2 + 'px';
-        patch.style.marginTop = -parseFloat(items[5]) / 2 + 'px';
-        window.castReceiverManager.setApplicationState(data);
+		if (data.indexOf('http') === 0 || data.indexOf('data:image/png') === 0) {
+			// Image
+			document.body.style.background = '#000 url(' + data + ') no-repeat center';
+			patch.style.display = 'none';
+		}
+		else {
+			// Color and size
+			document.body.style.background = items[1];
+			patch.style.backgroundColor = items[0];
+			patch.style.left = items[2] + 'px';
+			patch.style.top = items[3] + 'px';
+			patch.style.width = items[4] + 'px';
+			patch.style.height = items[5] + 'px';
+			patch.style.marginLeft = -parseFloat(items[4]) / 2 + 'px';
+			patch.style.marginTop = -parseFloat(items[5]) / 2 + 'px';
+			patch.style.display = 'block';
+		}
+		window.castReceiverManager.setApplicationState(data);
       };
     </script>
   </body>
