@@ -1,31 +1,17 @@
-<!--
-Copyright (C) 2014 Google Inc. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
 <!DOCTYPE html>
 <html>
-  <head>
-    <style type="text/css">
-        html, body {
-            background: #000;
-            height: 100%;
-            margin: 0;
+<head>
+	<title>Chromecast Pattern Generator</title>
+	<style type="text/css">
+		html, body {
+			background: #000;
+			height: 100%;
+			margin: 0;
 			overflow: hidden;
-            padding: 0;
-            width: 100%;
-        }
-		#patch {
+			padding: 0;
+			width: 100%;
+		}
+		#media {
 			background: #808080;
 			height: 300px;
 			left: 50%;
@@ -35,143 +21,65 @@ limitations under the License.
 			top: 50%;
 			width: 300px;
 		}
-    </style>
-    <title>Chromecast Pattern Generator</title>
-  </head>
-  <body>
-    <video id="patch"></video>
-    <script src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
-    <script>
-      window.onload = function () {
-        cast.receiver.logger.setLevelValue(0);
-        window.mediaElement = document.getElementById('patch');
-        window.mediaManager = new cast.receiver.MediaManager(window.mediaElement);
-		window.mediaManager.onLoad = function (event) {
-		  var img, contentId;
-          window.castReceiverManager.setApplicationState("Loading...");
-		  if (event.data['media'] && event.data['media']['contentId']) {
-			contentId = event.data['media']['contentId'];
-			if (contentId.indexOf('http') === 0 || contentId.indexOf('data:image/png') === 0) {
-				img = new Image();
-				img.onload = function () {
-					update(this.src);
-					window.mediaManager.sendLoadComplete();
+	</style>
+	<script src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
+	<script>
+		window.onload = function () {
+			var mediaElement = document.getElementById('media'),
+				mediaManager = new cast.receiver.MediaManager(mediaElement),
+				castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
+
+			mediaManager.onLoad = function (event) {
+				var contentId, img;
+				if (event.data['media'] && event.data['media']['contentId']) {
+					/**
+					 * contentId must be an image URL or a string in the form:
+					 * "<patterncolor>;<backgroundcolor>;<x>;<y>;<width>;<height>"
+					 * Values other than patterncolor are optional.
+					 * Colors can be hex strings e.g. "#3C0" or RGB e.g. "rgb(51, 204, 0)"
+					 * x, y, width and height should be given in pixels.
+					 */
+					contentId = event.data['media']['contentId'];
+					if (contentId.indexOf('http') === 0 || contentId.indexOf('data:image/png') === 0) {
+						// Image
+						img = new Image();
+						img.onload = function () {
+							document.body.style.background = '#000 url(' + contentId + ') no-repeat center';
+							mediaElement.style.display = 'none';
+							this.sendLoadComplete();
+						}
+						img.src = contentId + '?' + new Date().getTime();
+					}
+					else {
+						// Colors, position and size
+						items = contentId.split(';');
+						mediaElement.style.backgroundColor = items[0];
+						if (items[1])
+							document.body.style.background = items[1];
+						if (items[2])
+							mediaElement.style.left = items[2] + 'px';
+						if (items[3])
+							mediaElement.style.top = items[3] + 'px';
+						if (items[4]) {
+							mediaElement.style.width = items[4] + 'px';
+							mediaElement.style.marginLeft = -parseFloat(items[4]) / 2 + 'px';
+						}
+						if (items[5]) {
+							mediaElement.style.height = items[5] + 'px';
+							mediaElement.style.marginTop = -parseFloat(items[5]) / 2 + 'px';
+						}
+						mediaElement.style.display = 'block';
+						this.sendLoadComplete();
+					}
 				}
-				img.src = contentId + '?' + new Date().getTime();
-			}
-			else {
-				update(contentId);
-				window.mediaManager.sendLoadComplete();
-			}
-		  }
-		  else {
-			window.castReceiverManager.setApplicationState("Load failed!");
-			window.mediaManager.sendLoadError();
-		  }
+				else this.sendLoadError();
+			};
+
+			castReceiverManager.start();
 		};
-		window.mediaManager.resetMediaElement = function () {};
-
-        window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
-        console.log('Starting Receiver Manager');
-        
-        // handler for the 'ready' event
-        castReceiverManager.onReady = function(event) {
-          console.log('Received Ready event: ' + JSON.stringify(event.data));
-          window.castReceiverManager.setApplicationState("Application status is ready...");
-        };
-        
-        // handler for 'senderconnected' event
-        castReceiverManager.onSenderConnected = function(event) {
-          console.log('Received Sender Connected event: ' + event.data);
-          console.log(window.castReceiverManager.getSender(event.data).userAgent);
-        };
-        
-        // handler for 'senderdisconnected' event
-        castReceiverManager.onSenderDisconnected = function(event) {
-          console.log('Received Sender Disconnected event: ' + event.data);
-          if (window.castReceiverManager.getSenders().length == 0) {
-            window.close();
-          }
-        };
-        
-        // handler for 'systemvolumechanged' event
-        castReceiverManager.onSystemVolumeChanged = function(event) {
-          console.log('Received System Volume Changed event: ' + event.data['level'] + ' ' +
-              event.data['muted']);
-        };
-
-        // create a CastMessageBus to handle messages for a custom namespace
-        window.messageBus =
-          window.castReceiverManager.getCastMessageBus(
-              'urn:x-cast:com.google.cast.sample.helloworld');
-
-        // handler for the CastMessageBus message event
-        window.messageBus.onMessage = function(event) {
-          console.log('Message [' + event.senderId + ']: ' + event.data);
-          // display the message from the sender
-          update(event.data);
-          // inform all senders on the CastMessageBus of the incoming message event
-          // sender message listener will be invoked
-          window.messageBus.send(event.senderId, event.data);
-        }
-
-        /**
-		 * Application config
-		 **/
-		var appConfig = new cast.receiver.CastReceiverManager.Config();
-
-		/**
-		 * Text that represents the application status. It should meet
-		 * internationalization rules as may be displayed by the sender application.
-		 * @type {string|undefined}
-		 **/
-		appConfig.statusText = 'Ready to play';
-
-		/**
-		 * Maximum time in seconds before closing an idle
-		 * sender connection. Setting this value enables a heartbeat message to keep
-		 * the connection alive. Used to detect unresponsive senders faster than
-		 * typical TCP timeouts. The minimum value is 5 seconds, there is no upper
-		 * bound enforced but practically it's minutes before platform TCP timeouts
-		 * come into play. Default value is 10 seconds.
-		 * @type {number|undefined}
-		 **/
-		appConfig.maxInactivity = 10;
-
-		/**
-		 * Initializes the system manager. The application should call this method when
-		 * it is ready to start receiving messages, typically after registering
-		 * to listen for the events it is interested on.
-		 */
-		window.castReceiverManager.start(appConfig);
-        console.log('Receiver Manager started');
-      };
-      
-      // utility function to set colors and size
-      function update(data) {
-        // Data must be an image URL or a string in the following form:
-        // "<patchcolor>;<backgroundcolor>;<x>;<y>;<width>;<height>"
-        var items = (data + "").split(";"), patch = document.getElementById("patch");
-        console.log(data);
-		if (data.indexOf('http') === 0 || data.indexOf('data:image/png') === 0) {
-			// Image
-			document.body.style.background = '#000 url(' + data + ') no-repeat center';
-			patch.style.display = 'none';
-		}
-		else {
-			// Color and size
-			document.body.style.background = items[1];
-			patch.style.backgroundColor = items[0];
-			patch.style.left = items[2] + 'px';
-			patch.style.top = items[3] + 'px';
-			patch.style.width = items[4] + 'px';
-			patch.style.height = items[5] + 'px';
-			patch.style.marginLeft = -parseFloat(items[4]) / 2 + 'px';
-			patch.style.marginTop = -parseFloat(items[5]) / 2 + 'px';
-			patch.style.display = 'block';
-		}
-		window.castReceiverManager.setApplicationState(data);
-      };
-    </script>
-  </body>
+	</script>
+</head>
+<body>
+	<video id="media"></video>
+</body>
 </html>
