@@ -41,21 +41,28 @@ limitations under the License.
   <body>
     <video id="patch"></video>
     <script src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
-    <script >
+    <script>
       window.onload = function () {
         cast.receiver.logger.setLevelValue(0);
         window.mediaElement = document.getElementById('patch');
         window.mediaManager = new cast.receiver.MediaManager(window.mediaElement);
 		window.mediaManager.onLoad = function (event) {
-		  var img;
+		  var img, contentId;
           window.castReceiverManager.setApplicationState("Loading...");
 		  if (event.data['media'] && event.data['media']['contentId']) {
-			img = new Image();
-			img.onload = function () {
-				update(this.src);
+			contentId = event.data['media']['contentId'];
+			if (contentId.indexOf('http') === 0 || contentId.indexOf('data:image/png') === 0) {
+				img = new Image();
+				img.onload = function () {
+					update(this.src);
+					window.mediaManager.sendLoadComplete();
+				}
+				img.src = contentId + '?' + new Date().getTime();
+			}
+			else {
+				update(contentId);
 				window.mediaManager.sendLoadComplete();
 			}
-			img.src = event.data['media']['contentId'] + '?' + new Date().getTime();;
 		  }
 		  else {
 			window.castReceiverManager.setApplicationState("Load failed!");
