@@ -13,8 +13,13 @@
 			border: 0;
 		}
 		#wrapper td {
+            line-height: 1.4em;
 			text-align: center;
 			vertical-align: middle;
+		}
+		code {
+			background: #eee;
+			border-radius: 5px;
 		}
 		code, input {
 			font-family: Consolas, Andale Mono, Monaco, Lucida Console, monospace;
@@ -100,7 +105,7 @@
 			else console.log('Receiver list empty');
 		}
 
-        // Send data to receiver
+		// Send data to receiver
 		function send(data) {
 			if (session) _send(data);
 			else {
@@ -113,8 +118,12 @@
 
 		function _send(data) {
 			var mediaInfo, loadRequest;
-			if (data.indexOf('http') === 0 || data.indexOf('data:image/png') === 0)
-				contentType = 'image/png';
+			if (data.indexOf('http') === 0 || data.indexOf('data:image') === 0) {
+				if (data.indexOf('http') === 0)
+					contentType = 'image/' + data.split('.').pop();
+				else
+					contentType = data.match(/image\/([^;]+)/)[1];
+			}
 			else
 				contentType = 'text/plain';
 			mediaInfo = new chrome.cast.media.MediaInfo(data, contentType);
@@ -131,20 +140,21 @@
 				<form method="get" onsubmit="send(document.getElementById('input').value); return false">
 					<h1>Chromecast Pattern Generator Test</h1>
 					<p>
-						Enter a PNG image URL or pattern information in the form<br>
-						<code>&lt;patterncolor&gt;;&lt;backgroundcolor&gt;;&lt;x&gt;;&lt;y&gt;;&lt;width&gt;;&lt;height&gt;</code><br>
-						Colors can be hex strings e.g. "#3C0" or RGB e.g. "rgb(51, 204, 0)"<br>
-						Values other than patterncolor are optional.<br>
-						x, y, width and height should be given in pixels.
+						Enter an image URL or pattern information in the form<br>
+						<code>&lt;foreground&gt;|&lt;background&gt;|&lt;x&gt;|&lt;y&gt;|&lt;width&gt;|&lt;height&gt;</code><br>
+						<code>&lt;foreground&gt;</code> and <code>&lt;background&gt;</code> can be hex strings e.g. "#3C0", RGB e.g. "rgb(51, 204, 0)", or image URLs.<br>
+						Values other than <code>&lt;foreground&gt;</code> are optional.<br>
+						<code>&lt;x&gt;</code> and <code>&lt;y&gt;</code> should be given as relative position 0.0..1.0.<br>
+						<code>&lt;width&gt;</code> and <code>&lt;height&gt;</code> should be given as scaling factor 0.0..50.0.
 					</p>
 					<p>
-						<input id="input" type="text" size="30" value="#C30;#666;;;500;500">
+						<input id="input" type="text" size="30" value="#C30|#808080|||.4|.4">
 					</p>
-                    <p>
-                        <button onclick="send(this.innerText); return false">#C30</button>
-                        <button onclick="send(this.innerText); return false">#3C0</button>
-                        <button onclick="send(this.innerText); return false">#03C</button>
-                    </p>
+					<p>
+						<button onclick="send(this.innerText); return false">#C30</button>
+						<button onclick="send(this.innerText); return false">#3C0</button>
+						<button onclick="send(this.innerText); return false">#03C</button>
+					</p>
 				</form>
 			</td>
 		</tr>

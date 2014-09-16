@@ -3,23 +3,21 @@
 <head>
 	<title>Chromecast Pattern Generator</title>
 	<style type="text/css">
-		html, body {
-			background: #000;
+		html, body, #media {
+			background-position: center;
+			background-repeat: no-repeat;
+			background-size: cover;
 			height: 100%;
 			margin: 0;
 			overflow: hidden;
 			padding: 0;
 			width: 100%;
 		}
+		body {
+			background-color: #292929;
+		}
 		#media {
-			background: #808080;
-			height: 300px;
-			left: 50%;
-			margin-left: -150px;
-			margin-top: -150px;
 			position: absolute;
-			top: 50%;
-			width: 300px;
 		}
 	</style>
 	<script src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
@@ -31,47 +29,57 @@
 				castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
 
 			mediaManager.onLoad = function (event) {
-				var contentId, img;
+				var contentId, items, containerElement, img, imgs = [],
+					default_w = (window.width || document.body.offsetWidth) * (256 / 1920),
+					default_h = (window.width || document.body.offsetWidth) * (256 / 1920),
+					x, y, w, h;
 				if (event.data['media'] && event.data['media']['contentId']) {
 					/**
 					 * contentId must be an image URL or a string in the form:
-					 * "<patterncolor>;<backgroundcolor>;<x>;<y>;<width>;<height>"
-					 * Values other than patterncolor are optional.
-					 * Colors can be hex strings e.g. "#3C0" or RGB e.g. "rgb(51, 204, 0)"
-					 * x, y, width and height should be given in pixels.
+					 * "<foreground>|<background>|<x>|<y>|<width>|<height>"
+					 * Values other than <foreground> are optional.
+					 * <foreground>, <background> can be hex strings e.g. "#3C0", RGB e.g. "rgb(51, 204, 0)", or image URLs.
+					 * <x>, <y> should be given as relative position 0.0..1.0.
+					 * <width>, <height> should be given as scaling factor 0.0..50.0.
 					 */
 					contentId = event.data['media']['contentId'];
-					if (contentId.indexOf('http') === 0 || contentId.indexOf('data:image/png') === 0) {
-						// Image
-						img = new Image();
-						img.onload = function () {
-							document.body.style.background = '#000 url(' + this.src + ') no-repeat center';
-							mediaElement.style.display = 'none';
-							mediaManager.sendLoadComplete();
+					items = contentId.split('|');
+					for (var i = 0; i < 2; i ++) {
+						if (!items[i]) continue;
+						containerElement = i == 0 ? mediaElement : document.body;
+						if (items[i].indexOf('http') === 0 || items[i].indexOf('data:image') === 0) {
+							// Allow image URL for patterncolor and background color
+							img = new Image();
+							img.onload = function () {
+								this._containerElement.style.backgroundImage = 'url("' + this.src + '")';
+								this._loaded = true;
+								// Check if all images loaded
+								for (var j = 0; j < imgs.length; j ++) if (!imgs[j]._loaded) break;
+								if (j == imgs.length) mediaManager.sendLoadComplete();
+							}
+							img._containerElement = containerElement;
+							imgs.push(img);
+							img.src = items[i];
 						}
-						img.src = contentId;
+						else containerElement.style.backgroundColor = items[i];
 					}
-					else {
-						// Colors, position and size
-						items = contentId.split(';');
-						mediaElement.style.backgroundColor = items[0];
-						if (items[1])
-							document.body.style.background = items[1];
-						if (items[2])
-							mediaElement.style.left = items[2] + 'px';
-						if (items[3])
-							mediaElement.style.top = items[3] + 'px';
-						if (items[4]) {
-							mediaElement.style.width = items[4] + 'px';
-							mediaElement.style.marginLeft = -parseFloat(items[4]) / 2 + 'px';
-						}
-						if (items[5]) {
-							mediaElement.style.height = items[5] + 'px';
-							mediaElement.style.marginTop = -parseFloat(items[5]) / 2 + 'px';
-						}
-						mediaElement.style.display = 'block';
-						this.sendLoadComplete();
+					if (items[4]) {
+						w = parseFloat(items[4]) * default_w;
+						mediaElement.style.width = w + 'px';
 					}
+					if (items[5] || items[4]) {
+						h = parseFloat(items[5] || items[4]) * default_h;
+						mediaElement.style.height = h + 'px';
+					}
+					if (items[2]) {
+						x = parseFloat(items[2]) * ((window.width || document.body.offsetWidth) - mediaElement.offsetWidth);
+						mediaElement.style.left = x + 'px';
+					}
+					if (items[3]) {
+						y = parseFloat(items[3]) * ((window.height || document.body.offsetHeight) - mediaElement.offsetHeight);
+						mediaElement.style.top = y + 'px';
+					}
+					if (!imgs.length) mediaManager.sendLoadComplete();
 				}
 				else this.sendLoadError();
 			};
@@ -95,6 +103,10 @@
 			appConfig.maxInactivity = 10;
 
 			castReceiverManager.start(appConfig);
+
+			// Useful to have these available globally for debugging
+			window.mediaManager = mediaManager;
+			window.castReceiverManager = castReceiverManager;
 		};
 	</script>
 </head>
