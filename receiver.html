@@ -44,6 +44,12 @@ limitations under the License.
     <script >
       window.onload = function () {
         cast.receiver.logger.setLevelValue(0);
+        window.mediaElement = document.getElementById('patch');
+        window.mediaManager = new cast.receiver.MediaManager(window.mediaElement);
+		window.mediaManager.onLoad = function (event) {
+          update(event.contentId);
+		};
+
         window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
         console.log('Starting Receiver Manager');
         
