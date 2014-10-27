@@ -134,8 +134,10 @@ limitations under the License.
 			}
 		}
 
+		var queue = [];
+
 		function _send(data) {
-			var chunk, chunksize = 59989,
+			var chunk, chunksize = 59936,
 				mediaInfo, loadRequest, n, part, parts;
 			if (data.length > chunksize) parts = data.split('|');
 			else parts = [data];
@@ -144,12 +146,21 @@ limitations under the License.
 				n = 0;
 				while (part) {
 					chunk = part.substr(0, chunksize);
-					if (!n && data.length > chunksize) {
-						chunk = 'size:' + chunk.length + ';' + chunk;
-						if (i == 0)
-							chunk += '||' + parts.slice(2).join('|');
-						else
+					if (!n && part.length > chunksize) {
+						chunk = 'size:' + part.length + ';' + chunk;
+						if (i == 0) {
+							if (parts[1].length > 18)
+								chunk += '|';
+							else
+								chunk += '|' + parts[1];
+							chunk += '|' + parts.slice(2).join('|');
+						}
+					}
+					if (i) {
+						if (part.length > 18)
 							chunk = '|' + chunk;
+						else
+							break;
 					}
 					if (chunk.indexOf('http:') === 0 || chunk.indexOf('https:') === 0) {
 						mediaInfo = new chrome.cast.media.MediaInfo(chunk, 'image/' + chunk.split('.').pop());
@@ -159,12 +170,23 @@ limitations under the License.
 						mediaInfo.customData = chunk;
 					}
 					mediaInfo.streamType = chrome.cast.media.StreamType.LIVE;
-					loadRequest = new chrome.cast.media.LoadRequest(mediaInfo);
-					session.loadMedia(loadRequest, onSuccess.bind(this, 'Called load: ' + chunk), onError);
+					queue.push(mediaInfo);
 					part = part.substr(chunksize);
 					n += 1;
 				}
 			}
+			processQueue();
+		}
+
+		function processQueue() {
+			var mediaInfo = queue.shift(),
+				loadRequest;
+			if (!mediaInfo) return;
+			loadRequest = new chrome.cast.media.LoadRequest(mediaInfo);
+			session.loadMedia(loadRequest, function () {
+				onSuccess('Called load: ' + (mediaInfo.customData || mediaInfo.contentId));
+				processQueue();
+			}, onError);
 		}
 	</script>
 </head>
