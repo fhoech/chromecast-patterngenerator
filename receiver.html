@@ -41,40 +41,76 @@ limitations under the License.
 			var mediaElement = document.getElementById('media'),
 				mediaManager = new cast.receiver.MediaManager(mediaElement),
 				appConfig = new cast.receiver.CastReceiverManager.Config(),
-				castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
+				castReceiverManager = cast.receiver.CastReceiverManager.getInstance(),
+				imgdatasize = {}, imgparts = {};
 
 			mediaManager.onLoad = function (event) {
-				var contentId, items, containerElement, img, imgs = [],
+				var data, items, containerElement, img, imgdata,imgs = [],
 					default_w = (window.width || document.body.offsetWidth) * (256 / 1920),
 					default_h = (window.width || document.body.offsetWidth) * (256 / 1920),
 					x, y, w, h;
-				if (event.data['media'] && event.data['media']['contentId']) {
+				if (event.data['media'] && (event.data['media']['contentId'] || event.data['media']['customData'])) {
 					/**
-					 * contentId must be an image URL or a string in the form:
+					 * Data must be an image URL or a string in the form:
 					 * "<foreground>|<background>|<x>|<y>|<width>|<height>"
 					 * Values other than <foreground> are optional.
 					 * <foreground>, <background> can be hex strings e.g. "#3C0", RGB e.g. "rgb(51, 204, 0)", or image URLs.
 					 * <x>, <y> should be given as relative position 0.0..1.0.
 					 * <width>, <height> should be given as scaling factor 0.0..50.0.
+					 *
+					 * In case of data URLs, the payload may need to be split
+					 * to stay within the 64K transport message size limit
+					 * (see https://developers.google.com/cast/docs/reference/messages).
+					 *
+					 * To accomodate this, the first message must indicate
+					 * the size of the whole data string in bytes (i.e.
+					 * including "data:image"), and subsequent messages should
+					 * just contain chunks of the remaining data. E.g.
+					 *
+					 * 1st message: "size:128000;data:image/png;base64,<first chunk of image data>"
+					 * 2nd message: "<second chunk of image data>"
+					 * Etc.
 					 */
-					contentId = event.data['media']['contentId'];
-					items = contentId.split('|');
+					if (event.data['media']['customData'])
+						data = event.data['media']['customData'];
+					else
+						data = event.data['media']['contentId'];
+					items = data.split('|');
 					for (var i = 0; i < 2; i ++) {
 						if (!items[i]) continue;
 						containerElement = i == 0 ? mediaElement : document.body;
-						if (items[i].indexOf('http') === 0 || items[i].indexOf('data:image') === 0) {
+						if (items[i].indexOf('http:') === 0 ||
+							items[i].indexOf('https:') === 0 ||
+							items[i].indexOf('data:image') === 0 ||
+							items[i].indexOf('size:') === 0 ||
+							imgdatasize[i] > 0) {
 							// Allow image URL for patterncolor and background color
-							img = new Image();
-							img.onload = function () {
-								this._containerElement.style.backgroundImage = 'url("' + this.src + '")';
-								this._loaded = true;
-								// Check if all images loaded
-								for (var j = 0; j < imgs.length; j ++) if (!imgs[j]._loaded) break;
-								if (j == imgs.length) mediaManager.sendLoadComplete();
+							if (items[i].indexOf('http:') === 0 ||
+								items[i].indexOf('https:') === 0 ||
+								items[i].indexOf('data:image') === 0) {
+								imgdatasize[i] = items[i].length;
+								imgparts[i] = [items[i]];
 							}
-							img._containerElement = containerElement;
-							imgs.push(img);
-							img.src = items[i];
+							else if (items[i].indexOf('size:') === 0) {
+								imgdatasize[i] = parseInt(items[i].split(':', 2)[1]);
+								imgparts[i] = [items[i].split(';').slice(1).join(';')];
+							}
+							else imgparts[i].push(items[i]);
+							imgdata = imgparts[i].join('');
+							if (imgdata.length == imgdatasize[i]) {
+								imgdatasize[i] = -1;
+								img = new Image();
+								img.onload = function () {
+									this._containerElement.style.backgroundImage = 'url("' + this.src + '")';
+									this._loaded = true;
+									// Check if all images loaded
+									for (var j = 0; j < imgs.length; j ++) if (!imgs[j]._loaded) break;
+									if (j == imgs.length) mediaManager.sendLoadComplete();
+								}
+								img._containerElement = containerElement;
+								imgs.push(img);
+								img.src = imgdata;
+							}
 						}
 						else containerElement.style.backgroundColor = items[i];
 					}

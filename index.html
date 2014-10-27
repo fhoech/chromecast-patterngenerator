@@ -135,19 +135,36 @@ limitations under the License.
 		}
 
 		function _send(data) {
-			var mediaInfo, loadRequest;
-			if (data.indexOf('http') === 0 || data.indexOf('data:image') === 0) {
-				if (data.indexOf('http') === 0)
-					contentType = 'image/' + data.split('.').pop();
-				else
-					contentType = data.match(/image\/([^;]+)/)[1];
+			var chunk, chunksize = 59989,
+				mediaInfo, loadRequest, n, part, parts;
+			if (data.length > chunksize) parts = data.split('|');
+			else parts = [data];
+			for (var i = 0; i < 2; i ++) {
+				part = parts[i];
+				n = 0;
+				while (part) {
+					chunk = part.substr(0, chunksize);
+					if (!n && data.length > chunksize) {
+						chunk = 'size:' + chunk.length + ';' + chunk;
+						if (i == 0)
+							chunk += '||' + parts.slice(2).join('|');
+						else
+							chunk = '|' + chunk;
+					}
+					if (chunk.indexOf('http:') === 0 || chunk.indexOf('https:') === 0) {
+						mediaInfo = new chrome.cast.media.MediaInfo(chunk, 'image/' + chunk.split('.').pop());
+					}
+					else {
+						mediaInfo = new chrome.cast.media.MediaInfo(Math.random().toString(16).substr(2), 'text/plain');
+						mediaInfo.customData = chunk;
+					}
+					mediaInfo.streamType = chrome.cast.media.StreamType.LIVE;
+					loadRequest = new chrome.cast.media.LoadRequest(mediaInfo);
+					session.loadMedia(loadRequest, onSuccess.bind(this, 'Called load: ' + chunk), onError);
+					part = part.substr(chunksize);
+					n += 1;
+				}
 			}
-			else
-				contentType = 'text/plain';
-			mediaInfo = new chrome.cast.media.MediaInfo(data, contentType);
-			mediaInfo.streamType = chrome.cast.media.StreamType.LIVE;
-			loadRequest = new chrome.cast.media.LoadRequest(mediaInfo);
-			session.loadMedia(loadRequest, onSuccess.bind(this, 'Called load: ' + data), onError)
 		}
 	</script>
 </head>
@@ -164,9 +181,6 @@ limitations under the License.
 						Values other than <code>&lt;foreground&gt;</code> are optional.<br>
 						<code>&lt;x&gt;</code> and <code>&lt;y&gt;</code> should be given as relative position 0.0..1.0.<br>
 						<code>&lt;width&gt;</code> and <code>&lt;height&gt;</code> should be given as scaling factor 0.0..50.0.
-					</p>
-					<p>
-						<input id="input" type="text" size="30" value="#C30|#808080|.5|.5|1">
 					</p>
 				</form>
                 <p>
