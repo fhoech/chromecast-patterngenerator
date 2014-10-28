@@ -38,17 +38,101 @@ limitations under the License.
 	<script src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
 	<script>
 		window.onload = function () {
-			var mediaElement = document.getElementById('media'),
+			var default_w = (window.width || document.body.offsetWidth) * (256 / 1920),
+				default_h = (window.width || document.body.offsetWidth) * (256 / 1920),
+				mediaElement = document.getElementById('media'),
 				mediaManager = new cast.receiver.MediaManager(mediaElement),
 				appConfig = new cast.receiver.CastReceiverManager.Config(),
 				castReceiverManager = cast.receiver.CastReceiverManager.getInstance(),
-				imgdatasize = {}, imgparts = {};
+				messageBus, imgdatachunks = {}, imgdatasize = {};
+
+			function setPattern(which, data, sendLoadComplete) {
+				var containerElement = which == 'background' ? document.body : mediaElement,
+					img, imgdata, imgs = [];
+				if (typeof(data) != 'string' ||
+					data.indexOf('http:') === 0 ||
+					data.indexOf('https:') === 0 ||
+					data.indexOf('data:image') === 0 ||
+					data.indexOf('size:') === 0 ||
+					imgdatasize[which] > 0) {
+					// Allow image URL for patterncolor and background color
+					if (typeof(data) != 'string') {
+						imgdatachunks[which] = ['data:', data.contentType || 'image/png',
+												data.encoding ? ';' + data.encoding : '',
+												','];
+						imgdatasize[which] = imgdatachunks[which].join('').length + (parseInt(data.size) || data.data.length);
+						imgdatachunks[which].push(data.data);
+					}
+					else if (data.indexOf('http:') === 0 ||
+						data.indexOf('https:') === 0 ||
+						data.indexOf('data:image') === 0) {
+						imgdatasize[which] = data.length;
+						imgdatachunks[which] = [data];
+					}
+					else if (data.indexOf('size:') === 0) {
+						imgdatasize[which] = parseInt(data.split(':', 2)[1]);
+						imgdatachunks[which] = [data.split(';').slice(1).join(';')];
+					}
+					else imgdatachunks[which].push(data);
+					imgdata = imgdatachunks[which].join('');
+					if (imgdata.length == imgdatasize[which]) {
+						imgdatasize[which] = -1;
+						img = new Image();
+						img.onload = function () {
+							this._containerElement.style.backgroundImage = 'url("' + this.src + '")';
+							this._loaded = true;
+							if (sendLoadComplete) {
+								// Check if all images loaded
+								for (var j = 0; j < imgs.length; j ++) if (!imgs[j]._loaded) break;
+								if (j == imgs.length) mediaManager.sendLoadComplete();
+							}
+						}
+						img._containerElement = containerElement;
+						imgs.push(img);
+						img.src = imgdata;
+					}
+				}
+				else containerElement.style.backgroundColor = data;
+				if (!imgs.length && sendLoadComplete) mediaManager.sendLoadComplete();
+			}
+
+			function setOffsetScale(ho, vo, ss, vs) {
+				var x, y, w, h;
+				if (ss) {
+					w = parseFloat(ss) * default_w;
+					mediaElement.style.width = w + 'px';
+				}
+				if (vs || ss) {
+					h = parseFloat(vs || ss) * default_h;
+					mediaElement.style.height = h + 'px';
+				}
+				if (ho != null) {
+					x = parseFloat(ho) * ((window.width || document.body.offsetWidth) - mediaElement.offsetWidth);
+					mediaElement.style.left = x + 'px';
+				}
+				if (vo != null) {
+					y = parseFloat(vo) * ((window.height || document.body.offsetHeight) - mediaElement.offsetHeight);
+					mediaElement.style.top = y + 'px';
+				}
+			}
+
+			castReceiverManager.onReady = function (event) {
+				castReceiverManager.setApplicationState('Ready');
+			};
+
+			messageBus = castReceiverManager.getCastMessageBus('urn:x-cast:net.hoech.cast.patterngenerator');
+			messageBus.onMessage = function (event) {
+				var data = event.data;
+				console.log(event);
+				if (data.scale) setOffsetScale(null, null, data.scale[0], data.scale[1]);
+				if (data.offset) setOffsetScale(data.offset[0], data.offset[1])
+				if (data.foreground) setPattern('foreground', data.foreground);
+				if (data.background) setPattern('background', data.background);
+				messageBus.send(event.senderId, 'ACK');
+			};
 
 			mediaManager.onLoad = function (event) {
-				var data, items, containerElement, img, imgdata,imgs = [],
-					default_w = (window.width || document.body.offsetWidth) * (256 / 1920),
-					default_h = (window.width || document.body.offsetWidth) * (256 / 1920),
-					x, y, w, h;
+				var data, items;
 				if (event.data['media'] && (event.data['media']['contentId'] || event.data['media']['customData'])) {
 					/**
 					 * Data must be an image URL or a string in the form:
@@ -75,62 +159,12 @@ limitations under the License.
 						data = event.data['media']['customData'];
 					else
 						data = event.data['media']['contentId'];
-					items = data.split('|');
-					for (var i = 0; i < 2; i ++) {
-						if (!items[i]) continue;
-						containerElement = i == 0 ? mediaElement : document.body;
-						if (items[i].indexOf('http:') === 0 ||
-							items[i].indexOf('https:') === 0 ||
-							items[i].indexOf('data:image') === 0 ||
-							items[i].indexOf('size:') === 0 ||
-							imgdatasize[i] > 0) {
-							// Allow image URL for patterncolor and background color
-							if (items[i].indexOf('http:') === 0 ||
-								items[i].indexOf('https:') === 0 ||
-								items[i].indexOf('data:image') === 0) {
-								imgdatasize[i] = items[i].length;
-								imgparts[i] = [items[i]];
-							}
-							else if (items[i].indexOf('size:') === 0) {
-								imgdatasize[i] = parseInt(items[i].split(':', 2)[1]);
-								imgparts[i] = [items[i].split(';').slice(1).join(';')];
-							}
-							else imgparts[i].push(items[i]);
-							imgdata = imgparts[i].join('');
-							if (imgdata.length == imgdatasize[i]) {
-								imgdatasize[i] = -1;
-								img = new Image();
-								img.onload = function () {
-									this._containerElement.style.backgroundImage = 'url("' + this.src + '")';
-									this._loaded = true;
-									// Check if all images loaded
-									for (var j = 0; j < imgs.length; j ++) if (!imgs[j]._loaded) break;
-									if (j == imgs.length) mediaManager.sendLoadComplete();
-								}
-								img._containerElement = containerElement;
-								imgs.push(img);
-								img.src = imgdata;
-							}
-						}
-						else containerElement.style.backgroundColor = items[i];
+					if (typeof(data) == 'string') {
+						items = data.split('|');
+						setOffsetScale(items[2], items[3], items[4], items[5]);
+						for (var i = 0; i < 2; i ++) if (items[i]) setPattern(i ? 'background' : 'foreground', items[i], true);
 					}
-					if (items[4]) {
-						w = parseFloat(items[4]) * default_w;
-						mediaElement.style.width = w + 'px';
-					}
-					if (items[5] || items[4]) {
-						h = parseFloat(items[5] || items[4]) * default_h;
-						mediaElement.style.height = h + 'px';
-					}
-					if (items[2]) {
-						x = parseFloat(items[2]) * ((window.width || document.body.offsetWidth) - mediaElement.offsetWidth);
-						mediaElement.style.left = x + 'px';
-					}
-					if (items[3]) {
-						y = parseFloat(items[3]) * ((window.height || document.body.offsetHeight) - mediaElement.offsetHeight);
-						mediaElement.style.top = y + 'px';
-					}
-					if (!imgs.length) mediaManager.sendLoadComplete();
+					else messageBus.onMessage(event);
 				}
 				else this.sendLoadError();
 			};
@@ -140,7 +174,7 @@ limitations under the License.
 			 * internationalization rules as may be displayed by the sender application.
 			 * @type {string|undefined}
 			 **/
-			appConfig.statusText = 'Ready';
+			appConfig.statusText = 'Starting...';
 
 			/**
 			* Maximum time in seconds before closing an idle

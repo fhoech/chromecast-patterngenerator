@@ -30,28 +30,41 @@ limitations under the License.
 			padding: 0;
 			border: 0;
 		}
-		#wrapper td {
+		#wrapper > tbody > tr > td {
             line-height: 1.4em;
 			text-align: center;
 			vertical-align: middle;
 		}
+		td table {
+			margin: 1.4em auto;
+			width: auto;
+		}
+		td table td,
+		th {
+			padding-right: .5em;
+			text-align: left;
+		}
 		code {
 			background: #eee;
+			color: #333;
 			border-radius: 5px;
+			padding: 0 .2em;
 		}
-		code, input {
+		code, input[type="text"] {
 			font-family: Consolas, Andale Mono, Monaco, Lucida Console, monospace;
 		}
 		h1 {
 			font-weight: normal;
 		}
-		input {
+		input, button {
+			font-size: x-large;
+		}
+		input[type="text"] {
 			border: 2px solid #cccccc;
 			border-radius: 5px;
-			font-size: xx-large;
-			text-align: center;
+			padding: 0 .2em;
 		}
-		input:focus { 
+		input[type="text"]:focus { 
 			border-color: #8ecaed;
 			box-shadow: 0 0 5px #8ecaed;
 			outline: none;
@@ -60,7 +73,7 @@ limitations under the License.
 	<script type="text/javascript" src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
 	<script>
 		var applicationID = 'B5C2CBFC',
-			namespace = 'urn:x-cast:com.google.cast.patterngenerator',
+			namespace = 'urn:x-cast:net.hoech.cast.patterngenerator',
 			session;
 
 		// Call initialization for Cast
@@ -134,59 +147,54 @@ limitations under the License.
 			}
 		}
 
-		var queue = [];
+		var queue;
 
 		function _send(data) {
 			var chunk, chunksize = 59936,
-				mediaInfo, loadRequest, n, part, parts;
-			if (data.length > chunksize) parts = data.split('|');
-			else parts = [data];
+				msg, n, part, parts;
+			if (!data) data = {
+				"foreground": document.getElementById('foreground').value,
+				"background": document.getElementById('background').value,
+				"offset": [parseFloat(document.getElementById('offset_h').value),
+						   parseFloat(document.getElementById('offset_v').value)],
+				"scale": [parseFloat(document.getElementById('scale_h').value),
+						  parseFloat(document.getElementById('scale_v').value)]
+			};
+			queue = [];
 			for (var i = 0; i < 2; i ++) {
-				part = parts[i];
+				which = i ? 'background' : 'foreground';
+				part = data[which].replace(/^data:[^,]+,/, '');
 				n = 0;
 				while (part) {
 					chunk = part.substr(0, chunksize);
+					msg = {};
 					if (!n && part.length > chunksize) {
-						chunk = 'size:' + part.length + ';' + chunk;
-						if (i == 0) {
-							if (parts[1].length > 18)
-								chunk += '|';
-							else
-								chunk += '|' + parts[1];
-							chunk += '|' + parts.slice(2).join('|');
-						}
+						msg[which] = {
+							"contentType": data[which].match(/^data:([^,;]+)/)[1],
+							"data": chunk,
+							"encoding": data[which].match(/^data:[^,;]+;?([^,]*)/)[1],
+							"size": part.length
+						};
 					}
-					if (i) {
-						if (part.length > 18)
-							chunk = '|' + chunk;
-						else
-							break;
+					else msg[which] = chunk;
+					if (!n && !i) {
+						msg.offset = data.offset;
+						msg.scale = data.scale;
+						if (data.background && data.background.length < 25)
+							msg.background = data.background;
 					}
-					if (chunk.indexOf('http:') === 0 || chunk.indexOf('https:') === 0) {
-						mediaInfo = new chrome.cast.media.MediaInfo(chunk, 'image/' + chunk.split('.').pop());
-					}
-					else {
-						mediaInfo = new chrome.cast.media.MediaInfo(Math.random().toString(16).substr(2), 'text/plain');
-						mediaInfo.customData = chunk;
-					}
-					mediaInfo.streamType = chrome.cast.media.StreamType.LIVE;
-					queue.push(mediaInfo);
+					queue.push(msg);
 					part = part.substr(chunksize);
 					n += 1;
 				}
+				if (!data.background || data.background.length < 25) break;
 			}
 			processQueue();
 		}
 
 		function processQueue() {
-			var mediaInfo = queue.shift(),
-				loadRequest;
-			if (!mediaInfo) return;
-			loadRequest = new chrome.cast.media.LoadRequest(mediaInfo);
-			session.loadMedia(loadRequest, function () {
-				onSuccess('Called load: ' + (mediaInfo.customData || mediaInfo.contentId));
-				processQueue();
-			}, onError);
+			var msg = queue.shift();
+			if (msg) session.sendMessage(namespace, msg, onSuccess.bind(this, "Message sent: " + msg), onError);
 		}
 	</script>
 </head>
@@ -194,30 +202,52 @@ limitations under the License.
 	<table id="wrapper">
 		<tr>
 			<td>
-				<form method="get" onsubmit="send(document.getElementById('input').value); return false">
+				<form method="get" onsubmit="send(); return false">
 					<h1>Chromecast Pattern Generator Test</h1>
 					<p>
-						Enter an image URL or pattern information in the form<br>
-						<code>&lt;foreground&gt;|&lt;background&gt;|&lt;x&gt;|&lt;y&gt;|&lt;width&gt;|&lt;height&gt;</code><br>
-						<code>&lt;foreground&gt;</code> and <code>&lt;background&gt;</code> can be hex strings e.g. "#3C0", RGB e.g. "rgb(51, 204, 0)", or image URLs.<br>
-						Values other than <code>&lt;foreground&gt;</code> are optional.<br>
-						<code>&lt;x&gt;</code> and <code>&lt;y&gt;</code> should be given as relative position 0.0..1.0.<br>
-						<code>&lt;width&gt;</code> and <code>&lt;height&gt;</code> should be given as scaling factor 0.0..50.0.
+						Foreground and background can be hex strings e.g. <code>#3C0</code>, RGB e.g. <code>rgb(51, 204, 0)</code>, or image URLs (data URLs are supported).<br>
+						Fields other than foreground are optional.<br>
+						Horizontal and vertical position should be given as relative position <code>0.0..1.0</code>.<br>
+						Horizontal and vertical scale should be given as scaling factor <code>0.0..50.0</code>.
 					</p>
-					<p>
-						<input id="input" type="text" size="30" value="#C30|#808080|.5|.5|1">
-					</p>
+					<table>
+						<tr>
+							<th>Foreground:</th>
+							<td><input id="foreground" type="text" size="30" value="#C30"></td>
+						</tr>
+						<tr>
+							<th>Background:</th>
+							<td><input id="background" type="text" size="30" value="#808080"></td>
+						</tr>
+						<tr>
+							<th>Horizontal position:</th>
+							<td><input id="offset_h" type="text" size="5" value="0.5"></td>
+						</tr>
+						<tr>
+							<th>Vertical position:</th>
+							<td><input id="offset_v" type="text" size="5" value="0.5"></td>
+						</tr>
+						<tr>
+							<th>Horizontal scale:</th>
+							<td><input id="scale_h" type="text" size="5" value="1"></td>
+						</tr>
+						<tr>
+							<th>Vertical scale:</th>
+							<td><input id="scale_v" type="text" size="5" value="1"></td>
+						</tr>
+					</table>
+					<input type="submit">
 				</form>
                 <p>
-                    <button onclick="send(this.innerText); return false">#C30||.5|.5|1</button>
-                    <button onclick="send(this.innerText); return false">#3C0||.5|.5|1</button>
-                    <button onclick="send(this.innerText); return false">#03C||.5|.5|1</button>
+                    <button onclick="send(JSON.parse(this.innerText)); return false">{&quot;foreground&quot;: &quot;#C30&quot;, &quot;offset&quot;: [0.5, 0.5], &quot;scale&quot;: [1, 1]}</button><br>
+                    <button onclick="send(JSON.parse(this.innerText)); return false">{&quot;foreground&quot;: &quot;#3C0&quot;, &quot;offset&quot;: [0.5, 0.5], &quot;scale&quot;: [1, 1]}</button><br>
+                    <button onclick="send(JSON.parse(this.innerText)); return false">{&quot;foreground&quot;: &quot;#03C&quot;, &quot;offset&quot;: [0.5, 0.5], &quot;scale&quot;: [1, 1]}</button>
                 </p>
 			</td>
 		</tr>
 	</table>
 	<script>
-		document.getElementById("input").focus();
+		document.getElementById("foreground").focus();
 	</script>
 </body>
 </html>
