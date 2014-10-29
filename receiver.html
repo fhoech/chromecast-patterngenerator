@@ -99,11 +99,11 @@ limitations under the License.
 			function setOffsetScale(ho, vo, ss, vs) {
 				var x, y, w, h;
 				if (ss) {
-					w = parseFloat(ss) * default_w;
+					w = Math.round(parseFloat(ss) * default_w);
 					mediaElement.style.width = w + 'px';
 				}
 				if (vs || ss) {
-					h = parseFloat(vs || ss) * default_h;
+					h = Math.round(parseFloat(vs || ss) * default_h);
 					mediaElement.style.height = h + 'px';
 				}
 				if (ho != null) {
