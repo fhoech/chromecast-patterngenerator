@@ -194,7 +194,10 @@ limitations under the License.
 
 		function processQueue() {
 			var msg = queue.shift();
-			if (msg) session.sendMessage(namespace, msg, onSuccess.bind(this, "Message sent: " + msg), onError);
+			if (msg) {
+				session.sendMessage(namespace, msg, onSuccess.bind(this, "Message sent: " + msg), onError);
+				processQueue();
+			}
 		}
 	</script>
 </head>
