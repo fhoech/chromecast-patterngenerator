@@ -120,10 +120,11 @@ limitations under the License.
 				castReceiverManager.setApplicationState('Ready');
 			};
 
-			messageBus = castReceiverManager.getCastMessageBus('urn:x-cast:net.hoech.cast.patterngenerator');
+			messageBus = castReceiverManager.getCastMessageBus('urn:x-cast:net.hoech.cast.patterngenerator',
+															   cast.receiver.CastMessageBus.MessageType.JSON);
 			messageBus.onMessage = function (event) {
 				var data = event.data;
-				console.log(event);
+				console.log(event.senderId, typeof(event.data));
 				if (data.scale) setOffsetScale(null, null, data.scale[0], data.scale[1]);
 				if (data.offset) setOffsetScale(data.offset[0], data.offset[1])
 				if (data.foreground) setPattern('foreground', data.foreground);
