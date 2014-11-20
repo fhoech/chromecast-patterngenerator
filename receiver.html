@@ -38,8 +38,8 @@ limitations under the License.
 	<script src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
 	<script>
 		window.onload = function () {
-			var default_w = (window.width || document.body.offsetWidth) * (256 / 1920),
-				default_h = (window.width || document.body.offsetWidth) * (256 / 1920),
+			var default_w = (window.width || document.body.offsetWidth) * .1,
+				default_h = (window.width || document.body.offsetWidth) * .1,
 				mediaElement = document.getElementById('media'),
 				mediaManager = new cast.receiver.MediaManager(mediaElement),
 				appConfig = new cast.receiver.CastReceiverManager.Config(),
