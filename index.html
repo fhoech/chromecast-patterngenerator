@@ -168,7 +168,7 @@ limitations under the License.
 				while (part) {
 					chunk = part.substr(0, chunksize);
 					msg = {};
-					if (!n) {
+					if (!n && (part.length > chunksize || data[which].match(/^data:/))) {
 						msg[which] = {
 							"contentType": data[which].match(/^data:([^,;]+)/)[1],
 							"data": chunk,
