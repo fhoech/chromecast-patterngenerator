@@ -123,6 +123,44 @@ limitations under the License.
 			messageBus = castReceiverManager.getCastMessageBus('urn:x-cast:net.hoech.cast.patterngenerator',
 															   cast.receiver.CastMessageBus.MessageType.JSON);
 			messageBus.onMessage = function (event) {
+				/**
+				 * Receive data via custom message bus.
+				 *
+				 * Actual data payload for the first (or only) message for each
+				 * pattern should be
+				 *
+				 * {
+				 *     "foreground": {
+				 *         "contentType": "image/png",
+				 *         "encoding": "base64",
+				 *         "data": "<1st chunk of image data>",
+				 *         "size": <size of whole image data in bytes>
+				 *     },
+				 *     "background": "rgb(<R>, <G>, <B>)",
+				 *     "offset": [<offset_h>, <offset_v>],
+				 *     "scale": [<scale_h>, <scale_v>]
+				 * }
+				 * 
+				 * Keys other than "foreground" are optional.
+				 * "foreground", "background" values can also be colors given
+				 * as hex strings e.g. "#3C0" or RGB e.g. "rgb(51, 204, 0)".
+				 * <offset_h>, <offset_v> should be given as relative position 0.0..1.0.
+				 * <scale_h>, <scale_v> should be given as scaling factor 0.0..50.0.
+				 *
+				 * In case of data URLs, the payload may need to be split
+				 * to stay within the 64K transport message size limit
+				 * (see https://developers.google.com/cast/docs/reference/messages).
+				 *
+				 * To accomodate this, the first message must indicate
+				 * the size of the whole image data string in bytes as above,
+				 * and subsequent messages should just contain chunks of the
+				 * remaining data. E.g.
+				 *
+				 * {
+				 *     "foreground": "<nth chunk of image data>"
+				 * }
+				 *
+				 **/
 				var data = event.data;
 				console.log(event.senderId, typeof(event.data));
 				if (data.scale) setOffsetScale(null, null, data.scale[0], data.scale[1]);
@@ -136,12 +174,18 @@ limitations under the License.
 				var data, items;
 				if (event.data['media'] && (event.data['media']['contentId'] || event.data['media']['customData'])) {
 					/**
+					 * NOTE that receiving data via the LOAD command is just
+					 * available for backwards compatibility. The recommended
+					 * way is to use the custom message bus.
+					 *
 					 * Data must be an image URL or a string in the form:
-					 * "<foreground>|<background>|<x>|<y>|<width>|<height>"
+					 * "<foreground>|<background>|<offset_h>|<offset_v>|<scale_h>|<scale_v>"
 					 * Values other than <foreground> are optional.
-					 * <foreground>, <background> can be hex strings e.g. "#3C0", RGB e.g. "rgb(51, 204, 0)", or image URLs.
-					 * <x>, <y> should be given as relative position 0.0..1.0.
-					 * <width>, <height> should be given as scaling factor 0.0..50.0.
+					 * <foreground>, <background> can be colors given as hex
+					 * strings e.g. "#3C0", RGB e.g. "rgb(51, 204, 0)", or
+					 * image URLs.
+					 * <offset_h>, <offset_v> should be given as relative position 0.0..1.0.
+					 * <scale_h>, <scale_v> should be given as scaling factor 0.0..50.0.
 					 *
 					 * In case of data URLs, the payload may need to be split
 					 * to stay within the 64K transport message size limit
