@@ -102,7 +102,7 @@ limitations under the License.
 
 		// Generic success callback
 		function onSuccess(message) {
-			console.log('onSuccess: ' + message);
+			console.log("Message sent successfully: ", message);
 		}
 
 		// Session listener during initialization
@@ -168,7 +168,7 @@ limitations under the License.
 				while (part) {
 					chunk = part.substr(0, chunksize);
 					msg = {};
-					if (!n && part.length > chunksize) {
+					if (!n) {
 						msg[which] = {
 							"contentType": data[which].match(/^data:([^,;]+)/)[1],
 							"data": chunk,
@@ -195,7 +195,7 @@ limitations under the License.
 		function processQueue() {
 			var msg = queue.shift();
 			if (msg) {
-				session.sendMessage(namespace, msg, onSuccess.bind(this, "Message sent: " + msg), onError);
+				session.sendMessage(namespace, msg, onSuccess.bind(this, msg), onError);
 				processQueue();
 			}
 		}
