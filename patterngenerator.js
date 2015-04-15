@@ -9,7 +9,7 @@ window.onload = function () {
 
 	function setPattern(which, data, sendLoadComplete) {
 		var containerElement = which == 'background' ? document.body : mediaElement,
-			img, imgdata, imgs = [];
+			img, imgdata, imgs = [], rgba;
 		if (typeof(data) != 'string' ||
 			data.indexOf('http:') === 0 ||
 			data.indexOf('https:') === 0 ||
@@ -25,7 +25,7 @@ window.onload = function () {
 				if (typeof data.contentType != 'string') return which + ' image data content type is not a string: ' + JSON.stringify(data.contentType);
 				if (['image/gif', 'image/jpeg', 'image/png'].indexOf(data.contentType) < 0) return which + ' image data content type not supported: ' + JSON.stringify(data.contentType);
 				if (!data.size) return 'Invalid ' + which + ' image data size: ' + data.size;
-				if (typeof data.size != 'number') return which + ' image data size is not a number: ' + JSON.stringify(data.size);
+				if (isNaN(data.size)) return which + ' image data size is not a number: ' + JSON.stringify(data.size);
 				if (data.data.length > data.size) return 'Actual ' + which + ' image data size ' + data.data.length + ' is above indicated size ' + data.size;
 				imgdatachunks[which] = ['data:', data.contentType || 'image/png',
 										data.encoding ? ';' + data.encoding : '',
@@ -74,8 +74,22 @@ window.onload = function () {
 			}
 			else if (imgdata.length > imgdatasize[which]) return 'Actual ' + which + ' image data size is above expected size';
 		}
-		else if (which == 'background') containerElement.style.backgroundColor = data;
-		else return 'Invalid ' + which + ' definition: ' + JSON.stringify(data);
+		else {
+			if (data.match(/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i) ||
+				(rgba = data.match(/^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/)) ||
+				(rgba = data.match(/^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+\.?\d*|\.\d+)\s*\)$/))) {
+				if (rgba) {
+					for (var i = 1; i < 5; i ++) if (rgba[i] != null) rgba[i] = parseFloat(rgba[i]);
+					if (isNaN(rgba[1]) || rgba[1] < 0 || rgba[1] > 255 || parseInt(rgba[1]) != rgba[1] ||
+						isNaN(rgba[2]) || rgba[2] < 0 || rgba[2] > 255 || parseInt(rgba[2]) != rgba[2] ||
+						isNaN(rgba[3]) || rgba[3] < 0 || rgba[3] > 255 || parseInt(rgba[3]) != rgba[3] ||
+						(rgba[4] != null && (isNaN(rgba[4]) || rgba[4] < 0 || rgba[4] > 1)))
+						return 'Invalid ' + which + ' definition: ' + JSON.stringify(data);
+				}
+				containerElement.style.background = data;
+			}
+			else return 'Invalid ' + which + ' definition: ' + JSON.stringify(data);
+		}
 		if (!imgs.length && sendLoadComplete) mediaManager.sendLoadComplete();
 	}
 
