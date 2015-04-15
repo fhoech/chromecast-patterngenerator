@@ -74,7 +74,8 @@ limitations under the License.
 	<script>
 		var applicationID = 'B5C2CBFC',
 			namespace = 'urn:x-cast:net.hoech.cast.patterngenerator',
-			session;
+			session,
+			requestId = 0;
 
 		// Call initialization for Cast
 		if (!chrome.cast || !chrome.cast.isAvailable)
@@ -167,7 +168,7 @@ limitations under the License.
 				n = 0;
 				while (part) {
 					chunk = part.substr(0, chunksize);
-					msg = {};
+					msg = {"requestId": requestId ++};
 					if (!n && (part.length > chunksize || data[which].match(/^data:/))) {
 						msg[which] = {
 							"contentType": data[which].match(/^data:([^,;]+)/)[1],
