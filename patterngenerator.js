@@ -192,11 +192,9 @@ window.onload = function () {
 			if (error) errors.push(error);
 		}
 		if (errors.length) {
-			castReceiverManager.setApplicationState('Pattern generator request ID ' + data.requestId + ' failed');
 			messageBus.send(event.senderId, {'requestId': data.requestId, 'type': 'NACK', 'errors': errors});
 		}
 		else {
-			castReceiverManager.setApplicationState('Pattern generator request ID ' + data.requestId + ' OK');
 			messageBus.send(event.senderId, {'requestId': data.requestId, 'type': 'ACK'});
 		}
 	};
@@ -244,10 +242,8 @@ window.onload = function () {
 					if (error) errors.push(error);
 				}
 				if (errors.length) {
-					castReceiverManager.setApplicationState('Pattern generator request ID ' + event.data.requestId + ' failed');
 					messageBus.send(event.senderId, {'requestId': event.data.requestId, 'type': 'NACK', 'errors': errors});
 				}
-				else castReceiverManager.setApplicationState('Pattern generator request ID ' + event.data.requestId + ' OK');
 			}
 			else messageBus.onMessage(event);
 		}
