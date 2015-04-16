@@ -142,7 +142,7 @@ limitations under the License.
 			if (session) _send(data);
 			else {
 				chrome.cast.requestSession(function (e) {
-					session = e;
+					sessionListener(e);
 					_send(data);
 				}, onError);
 			}
