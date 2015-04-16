@@ -169,7 +169,10 @@ window.onload = function () {
 		 *
 		 **/
 		var data = event.data, errors = [];
-		console.log('Received message from sender ID ' + JSON.stringify(event.senderId) + ', request ID ' + data.requestId);
+		if (window.debug)
+			console.log('Received message from sender ID ' + JSON.stringify(event.senderId) + ', request ID ' + data.requestId, event);
+		else
+			console.log('Received message from sender ID ' + JSON.stringify(event.senderId) + ', request ID ' + data.requestId);
 		if (data.scale) {
 			if (!data.scale.length || data.scale.length > 2) error = 'scale is not an array of length 2 or 1: ' + JSON.stringify(data.scale);
 			else error = setOffsetScale(null, null, data.scale[0], data.scale[1]);
